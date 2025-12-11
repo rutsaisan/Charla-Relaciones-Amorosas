@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Vibe Check - El Semáforo de las Relaciones</title>
+     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     
     <!-- Tailwind CSS (CDN) -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -367,8 +369,16 @@
                 <div class="pt-8">
                     <button onclick="goToSlide(0)" class="px-6 py-2 bg-stone-900 text-white rounded-full hover:scale-105 transition-transform cursor-pointer">Reiniciar</button>
                 </div>
+                <div class="w-full p-6 flex justify-center mt-auto">
+                    <a href="Tinder_animal.html" class="group relative inline-flex items-center justify-center px-8 py-3 text-lg font-bold text-white transition-all duration-200 bg-pink-500 font-pj rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-600 hover:bg-pink-600 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
+                        <i class="fas fa-paw mr-2 animate-bounce"></i>
+                        Animal Match
+                    </a>
+                </div>
             </div>
         </div>
+        
+        
 
         <!-- CONTROLS -->
         <div class="absolute bottom-8 left-0 w-full flex justify-between px-8 md:px-12 items-center text-stone-400 z-50">
@@ -517,5 +527,6 @@
         function resetGame() { startGame(); }
         updateView();
     </script>
+
 </body>
 </html>

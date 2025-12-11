@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cozy Swipe: Semáforo de Relaciones</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Nunito (Cozy vibe) -->
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body {
+            font-family: 'Nunito', sans-serif;
+            background-color: #fdf6e3; /* Fondo crema suave */
+            background-image: radial-gradient(#eecfa1 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        .cozy-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 24px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            border: 4px solid white;
+        }
+
+        .btn-action {
+            transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .btn-action:active {
+            transform: scale(0.9);
+        }
+        .btn-action:hover {
+            transform: scale(1.1);
+        }
+
+        /* Animaciones */
+        @keyframes popIn {
+            0% { opacity: 0; transform: scale(0.9) translateY(20px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .animate-pop {
+            animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+
+        @keyframes slideOut {
+            0% { transform: translateX(0) rotate(0); opacity: 1; }
+            100% { transform: translateX(100px) rotate(10deg); opacity: 0; }
+        }
+        .slide-out {
+            animation: slideOut 0.4s ease-in forwards;
+        }
+
+        /* Colores específicos para los estados */
+        .bg-flag-red { background-color: #FF8BA7; color: #5c1c2b; }
+        .bg-flag-yellow { background-color: #FFD97D; color: #5c4d1c; }
+        .bg-flag-green { background-color: #98DDCA; color: #1c5c4d; }
+        
+        .blob {
+            position: absolute;
+            filter: blur(40px);
+            z-index: -1;
+            opacity: 0.6;
+        }
+
+        /* Feedback Styles */
+        .feedback-correct { border-top: 8px solid #4ade80; }
+        .feedback-wrong { border-top: 8px solid #f87171; }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-center min-h-screen p-4 overflow-hidden relative">
+
+    <!-- Blobs decorativos de fondo -->
+    <div class="blob bg-pink-200 w-64 h-64 rounded-full top-0 left-0 -translate-x-1/2 -translate-y-1/2"></div>
+    <div class="blob bg-blue-200 w-80 h-80 rounded-full bottom-0 right-0 translate-x-1/4 translate-y-1/4"></div>
+
+    <!-- PANTALLA DE INICIO -->
+    <div id="start-screen" class="cozy-card p-8 max-w-md w-full text-center animate-pop z-10">
+        <div class="mb-4 text-6xl">🚦</div>
+        <h1 class="text-3xl font-extrabold text-gray-800 mb-2">Swipe a la Realidad</h1>
+        <h2 class="text-xl text-gray-600 font-semibold mb-6">Edición Cozy</h2>
+        <p class="text-gray-600 mb-8 leading-relaxed">
+            Bienvenido al mercado de las relaciones. Tu misión es identificar las señales.
+            <br><br>
+            ¿Es amor sano 💚, cuidado 🟡 o tóxico 🔴?
+        </p>
+        <button onclick="startGame()" class="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-4 px-6 rounded-2xl shadow-lg transform transition hover:-translate-y-1">
+            Empezar Dinámica
+        </button>
+    </div>
+
+    <!-- PANTALLA DE JUEGO -->
+    <div id="game-screen" class="hidden w-full max-w-md relative z-10">
+        
+        <!-- Barra de progreso -->
+        <div class="flex justify-between items-center mb-4 px-2">
+            <span class="text-gray-500 font-bold text-sm bg-white px-3 py-1 rounded-full shadow-sm">Caso <span id="current-card-num">1</span>/<span id="total-cards">5</span></span>
+            <div class="flex space-x-1">
+                <div class="w-2 h-2 rounded-full bg-red-400"></div>
+                <div class="w-2 h-2 rounded-full bg-yellow-400"></div>
+                <div class="w-2 h-2 rounded-full bg-green-400"></div>
+            </div>
+        </div>
+
+        <!-- Tarjeta del Perfil -->
+        <div id="card-container" class="cozy-card p-0 overflow-hidden relative min-h-[550px] flex flex-col">
+            <!-- Imagen del Animal -->
+            <div class="relative h-64 bg-gray-200 overflow-hidden group">
+                <!-- Imagen con object-contain para que se vea todo el dibujo o object-cover para llenar -->
+                <img id="profile-img" src="" alt="Avatar" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" onerror="this.src='https://placehold.co/400x400/e2e8f0/475569?text=Imagen+No+Encontrada'">
+                <div class="absolute bottom-0 left-0 w-full h-24 bg-gradient-to-t from-black/60 to-transparent"></div>
+                <div class="absolute bottom-4 left-6 text-white text-shadow drop-shadow-md">
+                    <h2 id="profile-name" class="text-3xl font-bold">Nombre, 19</h2>
+                    <p id="profile-breed" class="text-sm opacity-90 font-medium">Animal</p>
+                </div>
+            </div>
+
+            <!-- Bio / Situación -->
+            <div class="p-6 flex-grow flex flex-col justify-center bg-white">
+                <div class="bg-indigo-50/60 p-5 rounded-xl border border-indigo-100 shadow-sm">
+                    <p class="text-xs font-bold text-indigo-400 uppercase tracking-wider mb-2 flex items-center">
+                        <i class="fas fa-quote-left mr-2"></i> Biografía / Chat
+                    </p>
+                    <p id="profile-bio" class="text-gray-700 text-lg leading-snug font-medium italic">
+                        "..."
+                    </p>
+                </div>
+            </div>
+
+            <!-- Botones de Acción -->
+            <div class="p-6 pt-0 grid grid-cols-3 gap-4 bg-white pb-8">
+                <button onclick="checkAnswer('red')" class="btn-action flex flex-col items-center justify-center p-3 rounded-2xl bg-red-50 text-red-500 hover:bg-red-100 border-2 border-red-100 shadow-sm">
+                    <i class="fas fa-flag text-2xl mb-1"></i>
+                    <span class="text-xs font-bold">Red Flag</span>
+                </button>
+                <button onclick="checkAnswer('yellow')" class="btn-action flex flex-col items-center justify-center p-3 rounded-2xl bg-yellow-50 text-yellow-600 hover:bg-yellow-100 border-2 border-yellow-100 shadow-sm">
+                    <i class="fas fa-exclamation-circle text-2xl mb-1"></i>
+                    <span class="text-xs font-bold">Cuidado</span>
+                </button>
+                <button onclick="checkAnswer('green')" class="btn-action flex flex-col items-center justify-center p-3 rounded-2xl bg-green-50 text-green-600 hover:bg-green-100 border-2 border-green-100 shadow-sm">
+                    <i class="fas fa-heart text-2xl mb-1"></i>
+                    <span class="text-xs font-bold">Like</span>
+                </button>
+            </div>
+
+            <!-- Overlay de Feedback -->
+            <div id="feedback-overlay" class="absolute inset-0 bg-white z-20 hidden flex-col overflow-y-auto">
+                
+                <!-- Encabezado de resultado (Correcto/Incorrecto) -->
+                <div id="result-header" class="p-6 text-center border-b border-gray-100 bg-gray-50">
+                    <div id="feedback-icon" class="text-5xl mb-2 animate-bounce">🤔</div>
+                    <h3 id="user-result-title" class="text-2xl font-extrabold text-gray-800">¡Correcto!</h3>
+                    <p id="user-result-subtitle" class="text-sm text-gray-500 font-medium">Has identificado la señal.</p>
+                </div>
+
+                <!-- Contenido educativo -->
+                <div class="p-6 flex-grow flex flex-col items-center text-center">
+                    
+                    <div class="mb-6">
+                        <span id="official-badge" class="inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide mb-2 bg-gray-200 text-gray-700">
+                            La respuesta es RED FLAG
+                        </span>
+                        <p id="feedback-text" class="text-gray-700 text-lg leading-relaxed">
+                            Explicación...
+                        </p>
+                    </div>
+                    
+                    <div class="bg-blue-50 p-4 rounded-xl border border-blue-100 text-left w-full mb-6 shadow-sm">
+                        <p class="text-xs font-bold text-blue-500 uppercase mb-2 flex items-center">
+                            <i class="fas fa-comments mr-2"></i> Debate en Grupo:
+                        </p>
+                        <p id="feedback-debate" class="text-sm text-gray-800 font-medium italic">
+                            Pregunta para el grupo...
+                        </p>
+                    </div>
+
+                    <button onclick="nextCard()" class="w-full bg-gray-900 text-white px-6 py-4 rounded-xl font-bold shadow-lg hover:bg-gray-700 transition transform active:scale-95 flex items-center justify-center">
+                        Siguiente Perfil <i class="fas fa-arrow-right ml-2"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PANTALLA FINAL -->
+    <div id="end-screen" class="hidden cozy-card p-8 max-w-md w-full text-center animate-pop z-10">
+        <div class="text-6xl mb-4">✨</div>
+        <h2 class="text-2xl font-bold text-gray-800 mb-2">¡Ronda Completada!</h2>
+        <p class="text-gray-600 mb-6">Habéis analizado todas las situaciones.</p>
+        
+        <div class="bg-white border-2 border-dashed border-indigo-200 rounded-xl p-6 mb-6 text-left">
+            <h3 class="font-bold text-indigo-600 mb-4 flex items-center"><i class="fas fa-pen-fancy mr-2"></i> Decálogo del Buen Match</h3>
+            <ul class="space-y-3 text-sm text-gray-600">
+                <li class="flex items-start"><span class="mr-2 text-green-400 font-bold">1.</span> <span class="border-b border-gray-100 flex-grow pb-1">No asumiré que el silencio es desinterés.</span></li>
+                <li class="flex items-start"><span class="mr-2 text-green-400 font-bold">2.</span> <span class="border-b border-gray-100 flex-grow pb-1">Seré claro/a con mis intenciones.</span></li>
+                <li class="flex items-start"><span class="mr-2 text-green-400 font-bold">3.</span> <span class="text-gray-400 italic">Escribid vuestra norma...</span></li>
+            </ul>
+        </div>
+
+        <button onclick="location.reload()" class="text-indigo-500 font-bold hover:underline hover:text-indigo-600 transition">
+            🔄 Jugar de nuevo
+        </button>
+    </div>
+
+    <script>
+        // --- CONFIGURACIÓN DE DATOS ---
+        // Se usan los nombres de archivo proporcionados por el usuario
+        
+        const profiles = [
+            {
+                id: 1,
+                name: "Lobo Solitario",
+                breed: "El 'Chico Malo'",
+                img: "lobo.png", // Lobo
+                bio: "No me gustan los dramas ni la gente ofendidita. Si no tienes fotos de cuerpo entero, desliza a la izquierda. Aquí para pasarlo bien.",
+                correct: "red",
+                correctLabel: "RED FLAG 🚩",
+                feedback: {
+                    text: "Esta biografía grita falta de empatía. Etiquetar emociones ajenas como 'drama' es una forma de invalidar al otro antes de empezar.",
+                    debate: "¿Qué significa realmente 'no quiero dramas'? ¿Es sinceridad o falta de responsabilidad afectiva?"
+                }
+            },
+            {
+                id: 2,
+                name: "Leónidas",
+                breed: "El Intenso",
+                img: "leon.jpg", // León
+                bio: "💬 5 mensajes: '¿Qué tal?', '¿Todo bien?', 'Veo que estás online y no contestas', '¿Te aburro?', 'Vale, ya veo de qué vas'.",
+                correct: "red",
+                correctLabel: "RED FLAG 🚩",
+                feedback: {
+                    text: "Esto no es interés, es control y ansiedad proyectada. Nadie tiene la obligación de estar disponible 24/7 para un desconocido.",
+                    debate: "¿Dónde está la línea entre mostrar interés y acosar? ¿Sentís ansiedad si no os contestan rápido?"
+                }
+            },
+            {
+                id: 3,
+                name: "Bambi",
+                breed: "El Indeciso",
+                img: "ciervo.png", // Ciervo
+                bio: "Me encantas, de verdad. Pero ahora mismo no quiero etiquetas... eso sí, prefiero que fluyamos solo nosotros y no te veas con otros.",
+                correct: "yellow",
+                correctLabel: "YELLOW FLAG 🟡",
+                feedback: {
+                    text: "Es una zona gris peligrosa. Pedir exclusividad (beneficios de pareja) sin ofrecer compromiso (etiquetas) suele acabar en conflicto.",
+                    debate: "¿Es lícito pedir exclusividad sin compromiso? ¿Es una 'situationship'?"
+                }
+            },
+            {
+                id: 4,
+                name: "Batty",
+                breed: "El Nocturno",
+                img: "murcielago.jpg", // Murciélago
+                bio: "Mejor vente a mi cueva (casa) y vemos una peli, así estamos tranquilos y nos sale gratis. ¿O es que no te fías de mí?",
+                correct: "red",
+                correctLabel: "RED FLAG 🚩",
+                feedback: {
+                    text: "Manipulación de manual. Usar la frase '¿no te fías?' es chantaje emocional para forzarte a saltar tus límites de seguridad.",
+                    debate: "¿Por qué nos cuesta tanto decir 'no' cuando nos presionan cuestionando nuestra confianza?"
+                }
+            },
+            {
+                id: 5,
+                name: "Sr. Castor",
+                breed: "El Responsable",
+                img: "castor.jpg", // Castor
+                bio: "Antes de seguir quedando, me gustaría saber qué buscas tú para asegurarnos de que estamos en la misma página. 😊",
+                correct: "green",
+                correctLabel: "GREEN FLAG 💚",
+                feedback: {
+                    text: "¡Esto es Responsabilidad Afectiva! Hablar claro desde el principio evita daños futuros y muestra respeto por tu tiempo.",
+                    debate: "¿Da miedo ser tan directo al principio? ¿Creéis que 'corta el rollo' o que es necesario?"
+                }
+            },
+            {
+                id: 6,
+                name: "Montesita",
+                breed: "La Cabra Loca",
+                img: "cabra.png", // Cabra
+                bio: "Me encantas, pero voy despacio. A veces necesito desconectar el móvil y estar a mi bola. No es desinterés, es autocuidado ✨.",
+                correct: "green",
+                correctLabel: "GREEN FLAG 💚",
+                feedback: {
+                    text: "¡Esto es muy sano! Marcar límites de tiempo y espacio personal desde el principio evita la dependencia emocional.",
+                    debate: "¿Cómo diferenciaríais el 'necesitar espacio' del 'ghosting' o pasotismo?"
+                }
+            },
+            {
+                id: 7,
+                name: "Capitán Plumas",
+                breed: "El Halcón",
+                img: "halcón.jpg", // Halcón
+                bio: "No me cae bien tu mejor amig@. Siento que te critica a mis espaldas y no te conviene. Deberías dejar de verle si te importo.",
+                correct: "red",
+                correctLabel: "RED FLAG 🚩",
+                feedback: {
+                    text: "¡Cuidado! Intentar aislarte de tu entorno (amigos o familia) bajo excusas de 'protección' es una forma clásica de control y abuso.",
+                    debate: "¿Alguna vez habéis sentido que una pareja os intentaba alejar de vuestros amigos?"
+                }
+            }
+        ];
+
+        // --- ESTADO DEL JUEGO ---
+        let currentIndex = 0;
+
+        // --- REFERENCIAS DOM ---
+        const startScreen = document.getElementById('start-screen');
+        const gameScreen = document.getElementById('game-screen');
+        const endScreen = document.getElementById('end-screen');
+        const cardContainer = document.getElementById('card-container');
+        
+        const profileImg = document.getElementById('profile-img');
+        const profileName = document.getElementById('profile-name');
+        const profileBreed = document.getElementById('profile-breed');
+        const profileBio = document.getElementById('profile-bio');
+        
+        // Feedback DOM
+        const feedbackOverlay = document.getElementById('feedback-overlay');
+        const resultHeader = document.getElementById('result-header');
+        const feedbackIcon = document.getElementById('feedback-icon');
+        const userResultTitle = document.getElementById('user-result-title');
+        const userResultSubtitle = document.getElementById('user-result-subtitle');
+        
+        const officialBadge = document.getElementById('official-badge');
+        const feedbackText = document.getElementById('feedback-text');
+        const feedbackDebate = document.getElementById('feedback-debate');
+
+        const currentCardNum = document.getElementById('current-card-num');
+        const totalCards = document.getElementById('total-cards');
+
+        // --- FUNCIONES ---
+
+        function startGame() {
+            startScreen.classList.add('hidden');
+            gameScreen.classList.remove('hidden');
+            gameScreen.classList.add('animate-pop');
+            totalCards.textContent = profiles.length;
+            loadCard(currentIndex);
+        }
+
+        function loadCard(index) {
+            if (index >= profiles.length) {
+                showEndScreen();
+                return;
+            }
+
+            const profile = profiles[index];
+            
+            // Reset state
+            feedbackOverlay.classList.add('hidden');
+            feedbackOverlay.classList.remove('flex');
+            cardContainer.classList.remove('slide-out');
+            
+            // Load content
+            profileImg.src = profile.img;
+            profileName.textContent = profile.name; 
+            profileBreed.textContent = profile.breed;
+            profileBio.textContent = `"${profile.bio}"`;
+            currentCardNum.textContent = index + 1;
+        }
+
+        function checkAnswer(userChoice) {
+            const profile = profiles[currentIndex];
+            const isCorrect = userChoice === profile.correct;
+            
+            // 1. Determinar apariencia según si el usuario acertó o no
+            if (isCorrect) {
+                // Caso: ACIERTO
+                resultHeader.className = "p-6 text-center border-b border-green-100 bg-green-50";
+                feedbackIcon.textContent = "🎉";
+                userResultTitle.textContent = "¡Muy bien visto!";
+                userResultTitle.className = "text-2xl font-extrabold text-green-700";
+                userResultSubtitle.textContent = "Has identificado correctamente la situación.";
+            } else {
+                // Caso: FALLO
+                resultHeader.className = "p-6 text-center border-b border-red-100 bg-red-50";
+                feedbackIcon.textContent = "🧐";
+                userResultTitle.textContent = "Piénsalo mejor...";
+                userResultTitle.className = "text-2xl font-extrabold text-red-700";
+                
+                // Mensaje personalizado según el error
+                if (profile.correct === 'red' && userChoice === 'green') {
+                    userResultSubtitle.textContent = "¡Cuidado! Esto parece bonito pero esconde toxicidad.";
+                } else if (profile.correct === 'green' && userChoice === 'red') {
+                    userResultSubtitle.textContent = "¿Seguro? A veces la sinceridad asusta, pero es sana.";
+                } else {
+                    userResultSubtitle.textContent = "No es exactamente eso. Mira por qué:";
+                }
+            }
+
+            // 2. Configurar la "Solución Oficial"
+            officialBadge.textContent = "La realidad es: " + profile.correctLabel;
+            
+            // Colores del badge oficial
+            if(profile.correct === 'red') {
+                officialBadge.className = "inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide mb-2 bg-red-100 text-red-800 border border-red-200";
+            } else if (profile.correct === 'yellow') {
+                officialBadge.className = "inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide mb-2 bg-yellow-100 text-yellow-800 border border-yellow-200";
+            } else {
+                officialBadge.className = "inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide mb-2 bg-green-100 text-green-800 border border-green-200";
+            }
+
+            // 3. Rellenar textos educativos
+            feedbackText.textContent = profile.feedback.text;
+            feedbackDebate.textContent = profile.feedback.debate;
+
+            // 4. Mostrar Overlay
+            feedbackOverlay.classList.remove('hidden');
+            feedbackOverlay.classList.add('flex');
+        }
+
+        function nextCard() {
+            // Animación simple de salida
+            currentIndex++;
+            loadCard(currentIndex);
+        }
+
+        function showEndScreen() {
+            gameScreen.classList.add('hidden');
+            endScreen.classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
